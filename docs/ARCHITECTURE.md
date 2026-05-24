@@ -1,62 +1,64 @@
-# Scrinium — Architecture
+# 📐 Scrinium — Architecture
 
 Design reference for the Scrinium document management system. Implementation is in progress; details may change as the codebase grows.
 
+[← Back to README](../README.md)
+
 ## Table of contents
 
-1. [Overview](#overview)
-2. [Technology stack](#technology-stack)
-3. [System diagram](#system-diagram)
-4. [Responsibility split](#responsibility-split)
-5. [Data flow](#data-flow)
-6. [Format routing](#format-routing)
-7. [Pre-rendering and storage](#pre-rendering-and-storage)
-8. [PostgreSQL](#postgresql)
-9. [Keycloak](#keycloak)
-10. [Apache Solr](#apache-solr)
-11. [Supporting services](#supporting-services)
-12. [Workflow engine](#workflow-engine)
-13. [Local infrastructure](#local-infrastructure)
-14. [Solution layout](#solution-layout)
-15. [Open design decisions](#open-design-decisions)
-16. [Production](#production)
+1. [🧭 Overview](#overview)
+2. [🧱 Technology stack](#technology-stack)
+3. [🗺️ System diagram](#system-diagram)
+4. [🎯 Responsibility split](#responsibility-split)
+5. [🔀 Data flow](#data-flow)
+6. [📎 Format routing](#format-routing)
+7. [🖼️ Pre-rendering and storage](#pre-rendering-and-storage)
+8. [🐘 PostgreSQL](#postgresql)
+9. [🔐 Keycloak](#keycloak)
+10. [🔍 Apache Solr](#apache-solr)
+11. [🔧 Supporting services](#supporting-services)
+12. [⚙️ Workflow engine](#workflow-engine)
+13. [🐳 Local infrastructure](#local-infrastructure)
+14. [📦 Solution layout](#solution-layout)
+15. [❓ Open design decisions](#open-design-decisions)
+16. [🏭 Production](#production)
 
 ---
 
-## Overview
+## 🧭 Overview
 
 Scrinium is built around three pillars:
 
-- **Document storage and archiving** — immutable originals, normalized PDFs, tiered page renders in object storage
-- **Workflow automation** — rules on ingest (barcodes, metadata, routing, notifications)
-- **Full-text search** — Apache Solr/Lucene for discovery across extracted content
+- 📦 **Document storage and archiving** — immutable originals, normalized PDFs, tiered page renders in object storage
+- ⚙️ **Workflow automation** — rules on ingest (barcodes, metadata, routing, notifications)
+- 🔍 **Full-text search** — Apache Solr/Lucene for discovery across extracted content
 
 Clients (Avalonia desktop first) talk only to the ASP.NET Core API. The API orchestrates PostgreSQL, MinIO, Redis, Keycloak, and background processing (Tika, Gotenberg, PDFium, Solr).
 
 ---
 
-## Technology stack
+## 🧱 Technology stack
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| Language / runtime | C# [.NET 10](https://dotnet.microsoft.com/) | API, workers, desktop client |
-| UI | [Avalonia](https://avaloniaui.net/) | Cross-platform desktop (Windows, Linux, macOS) |
-| Database | PostgreSQL 16 | Metadata, ACLs, workflows, audit (ACID); [EF Core](https://learn.microsoft.com/ef/core/) |
-| Full-text search | Apache Solr 9 | Content indexing, faceted and fuzzy search |
-| Text extraction | Apache Tika | Office, email, HTML, etc. — metadata and text |
-| Conversion | Gotenberg 8 | Normalize formats to PDF (LibreOffice + Chromium) |
-| PDF operations | PDFium (+ ZXing) | Text/images from PDF, page render, barcodes |
-| Images | ImageSharp | JPEG, PNG, TIFF viewing path |
-| OCR | Tesseract | Scanned PDFs (when needed) |
-| Object storage | MinIO (S3-compatible) | Originals, normalized PDFs, pre-rendered pages |
-| Cache / queue | Redis 7 | Hot page cache, background job queue |
-| Authentication | Keycloak 24 | SSO, RBAC, OIDC/OAuth2 |
-| Real-time | SignalR | Processing status, workflow notifications to clients |
-| Infrastructure | Docker / Docker Compose | Local and on-prem service orchestration |
+| | Component | Technology | Purpose |
+|---|-----------|------------|---------|
+| 🔷 | Language / runtime | C# [.NET 10](https://dotnet.microsoft.com/) | API, workers, desktop client |
+| 🖥️ | UI | [Avalonia](https://avaloniaui.net/) | Cross-platform desktop (Windows, Linux, macOS) |
+| 🐘 | Database | PostgreSQL 16 | Metadata, ACLs, workflows, audit (ACID); [EF Core](https://learn.microsoft.com/ef/core/) |
+| 🔍 | Full-text search | Apache Solr 9 | Content indexing, faceted and fuzzy search |
+| 📄 | Text extraction | Apache Tika | Office, email, HTML, etc. — metadata and text |
+| 🔄 | Conversion | Gotenberg 8 | Normalize formats to PDF (LibreOffice + Chromium) |
+| 📑 | PDF operations | PDFium (+ ZXing) | Text/images from PDF, page render, barcodes |
+| 🖼️ | Images | ImageSharp | JPEG, PNG, TIFF viewing path |
+| 👁️ | OCR | Tesseract | Scanned PDFs (when needed) |
+| 🪣 | Object storage | MinIO (S3-compatible) | Originals, normalized PDFs, pre-rendered pages |
+| ⚡ | Cache / queue | Redis 7 | Hot page cache, background job queue |
+| 🔐 | Authentication | Keycloak 24 | SSO, RBAC, OIDC/OAuth2 |
+| 📡 | Real-time | SignalR | Processing status, workflow notifications to clients |
+| 🐳 | Infrastructure | Docker / Docker Compose | Local and on-prem service orchestration |
 
 ---
 
-## System diagram
+## 🗺️ System diagram
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -100,16 +102,16 @@ Document arrives at API
 
 ---
 
-## Responsibility split
+## 🎯 Responsibility split
 
-| Layer | Responsibility |
-|-------|----------------|
-| **Keycloak** | Authentication, SSO, system-wide roles (`admin`, `manager`, `user`), coarse document roles (`document:read`, `workflow:execute`, etc.) |
-| **PostgreSQL** | Source of truth — folder/document ACL, versions, workflow state, audit. Checked on every API request after JWT validation |
-| **MinIO** | Immutable originals, normalized PDF, pre-rendered page images (S3 API — swap to AWS/Azure via config) |
-| **Solr** | Derived search index only; rebuild from Postgres via admin reindex |
-| **Redis** | LRU cache for hot rendered pages; job queue for pre-render and Solr indexing |
-| **Tika / Gotenberg / PDFium** | Extraction and normalization; format-specific routing |
+| | Layer | Responsibility |
+|---|-------|----------------|
+| 🔐 | **Keycloak** | Authentication, SSO, system-wide roles (`admin`, `manager`, `user`), coarse document roles (`document:read`, `workflow:execute`, etc.) |
+| 🐘 | **PostgreSQL** | Source of truth — folder/document ACL, versions, workflow state, audit. Checked on every API request after JWT validation |
+| 🪣 | **MinIO** | Immutable originals, normalized PDF, pre-rendered page images (S3 API — swap to AWS/Azure via config) |
+| 🔍 | **Solr** | Derived search index only; rebuild from Postgres via admin reindex |
+| ⚡ | **Redis** | LRU cache for hot rendered pages; job queue for pre-render and Solr indexing |
+| 🔧 | **Tika / Gotenberg / PDFium** | Extraction and normalization; format-specific routing |
 
 Solr is never authoritative. If Solr is lost or corrupted, replay indexing from Postgres — document IDs in Postgres are the stable identifiers.
 
@@ -126,11 +128,11 @@ Layer 2 — PostgreSQL
 
 ---
 
-## Data flow
+## 🔀 Data flow
 
 ### Two-phase ingest
 
-**Phase 1 — ingest (synchronous, immediate)**
+**Phase 1 — ingest (synchronous, immediate)** ⚡
 
 1. Save original → MinIO
 2. Normalize to PDF → Gotenberg and/or PDFium
@@ -138,7 +140,7 @@ Layer 2 — PostgreSQL
 4. Write document row and extraction results to Postgres (ACID)
 5. Run workflow rules (folder routing from barcodes, tags, notifications)
 
-**Phase 2 — background (async via Redis queue)**
+**Phase 2 — background (async via Redis queue)** 🔄
 
 1. Pre-render page tiers → MinIO
 2. Update Postgres status → `ready`
@@ -160,7 +162,7 @@ CREATE TYPE document_status AS ENUM (
 
 ---
 
-## Format routing
+## 📎 Format routing
 
 | Input | Extraction | Rendering / preview |
 |-------|------------|---------------------|
@@ -177,7 +179,7 @@ The API uses a **format router** pattern: implementations of a common extractor 
 
 ---
 
-## Pre-rendering and storage
+## 🖼️ Pre-rendering and storage
 
 ### Rationale
 
@@ -209,7 +211,7 @@ MinIO is S3-compatible; production can point the same abstraction at AWS S3 or A
 
 ---
 
-## PostgreSQL
+## 🐘 PostgreSQL
 
 ### Why PostgreSQL
 
@@ -278,7 +280,7 @@ Authoritative DDL will live in EF Core migrations as the API project is added.
 
 ---
 
-## Keycloak
+## 🔐 Keycloak
 
 ### Realm design (target)
 
@@ -308,7 +310,7 @@ Realm: scrinium
 
 ---
 
-## Apache Solr
+## 🔍 Apache Solr
 
 | Concern | Notes |
 |---------|--------|
@@ -321,28 +323,28 @@ Realm: scrinium
 
 ---
 
-## Supporting services
+## 🔧 Supporting services
 
-### Apache Tika
+### 📄 Apache Tika
 
 Runs as a standalone container (`apache/tika`, port 9998). HTTP API for text (`/tika`) and metadata (`/meta`). Used when extraction should happen without Solr indexing.
 
-### Gotenberg
+### 🔄 Gotenberg
 
 LibreOffice (office formats, XPS, ODF) and Chromium (HTML, EML, Markdown) → PDF. Environment flags in dev: disable Chromium JS, auto-start LibreOffice.
 
-### PDFium
+### 📑 PDFium
 
 PDF text, images, metadata, page rasterization, barcodes (with ZXing). Office formats route through Gotenberg first.
 
-### Redis
+### ⚡ Redis
 
 - Rendered page cache (LRU, e.g. `--maxmemory 512mb --maxmemory-policy allkeys-lru`)
 - Job queue for pre-render and Solr indexing
 
 ---
 
-## Workflow engine
+## ⚙️ Workflow engine
 
 User-defined rules on ingest or update, for example:
 
@@ -355,19 +357,19 @@ Rules run in **phase 1** after extraction so routing and tagging use consistent 
 
 ---
 
-## Local infrastructure
+## 🐳 Local infrastructure
 
 Target Docker Compose services (file to be added to the repo):
 
-| Service | Image (indicative) | Port |
-|---------|-------------------|------|
-| PostgreSQL | `postgres:16` | 5432 |
-| Keycloak | `quay.io/keycloak/keycloak:24` | 8080 |
-| Tika | `apache/tika:latest` | 9998 |
-| Gotenberg | `gotenberg/gotenberg:8` | 3000 |
-| Solr | `solr:9` | 8983 |
-| Redis | `redis:7-alpine` | 6379 |
-| MinIO | `minio/minio:latest` | 9000, 9001 (console) |
+| | Service | Image (indicative) | Port |
+|---|---------|-------------------|------|
+| 🐘 | PostgreSQL | `postgres:16` | 5432 |
+| 🔐 | Keycloak | `quay.io/keycloak/keycloak:24` | 8080 |
+| 📄 | Tika | `apache/tika:latest` | 9998 |
+| 🔄 | Gotenberg | `gotenberg/gotenberg:8` | 3000 |
+| 🔍 | Solr | `solr:9` | 8983 |
+| ⚡ | Redis | `redis:7-alpine` | 6379 |
+| 🪣 | MinIO | `minio/minio:latest` | 9000, 9001 (console) |
 
 Example Solr service definition:
 
@@ -385,15 +387,15 @@ solr:
 
 ---
 
-## Solution layout
+## 📦 Solution layout
 
-| Project | Status | Purpose |
-|---------|--------|---------|
-| `Scrinium.Api` | In repo | ASP.NET Core Web API — health, OpenAPI (dev); JWT, ingest, search, SignalR planned |
-| `Scrinium` | In repo | Avalonia desktop UI (thin client over API) |
-| `Scrinium.Core` | Planned | Domain models, ACL, workflow rules, format router |
-| `Scrinium.Infrastructure` | Planned | EF Core, MinIO, Solr, Redis, optional Keycloak admin |
-| `Scrinium.Workers` | Planned | Pre-render, indexing, Tika/Gotenberg orchestration |
+| | Project | Status | Purpose |
+|---|---------|--------|---------|
+| 🌐 | `Scrinium.Api` | ✅ In repo | ASP.NET Core Web API — ingestion queue, health, OpenAPI (dev); JWT, search, SignalR planned |
+| 🖥️ | `Scrinium` | ✅ In repo | Avalonia desktop UI (thin client over API) |
+| 🧩 | `Scrinium.Core` | 📋 Planned | Domain models, ACL, workflow rules, format router |
+| 🏗️ | `Scrinium.Infrastructure` | 📋 Planned | EF Core, MinIO, Solr, Redis, optional Keycloak admin |
+| 👷 | `Scrinium.Workers` | 📋 Planned | Pre-render, indexing, Tika/Gotenberg orchestration |
 
 **Planned desktop packages** — ReactiveUI, `IdentityModel.OidcClient`, SignalR client, Refit, PDFtoImage (PDFium), ImageSharp.
 
@@ -401,7 +403,7 @@ solr:
 
 ---
 
-## Open design decisions
+## ❓ Open design decisions
 
 - Application database name (`scrinium` vs legacy prototype names)
 - Multi-tenancy (`tenant_id` vs schema-per-tenant vs DB-per-tenant)
@@ -412,22 +414,22 @@ solr:
 
 ---
 
-## Production
+## 🏭 Production
 
-### Scaling
+### 📈 Scaling
 
 - **Small/medium** — Docker Compose on one or few hosts
 - **Search at scale** — Kubernetes + SolrCloud
 - **Database** — managed Postgres (RDS, Azure Database) for backups and failover; MinIO, Solr, Redis, Tika, Gotenberg remain containerized or managed per environment
 
-### Security
+### 🛡️ Security
 
 - HTTPS for API, Keycloak, MinIO (`RequireHttpsMetadata = true` for JWT)
 - Rotate all default passwords; use secrets manager or vault for credentials
 - Keycloak brute-force protection and MFA for admin accounts
 - Document ACL enforced in API from Postgres, not inferred from Solr alone
 
-### Solr reindex
+### 🔍 Solr reindex
 
 ```
 Admin triggers reindex
