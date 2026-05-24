@@ -1,0 +1,6 @@
+@Scrinium.Api_HostAddress = http://localhost:5243
+
+GET {{Scrinium.Api_HostAddress}}/health
+Accept: application/json
+
+###

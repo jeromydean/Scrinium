@@ -387,13 +387,13 @@ solr:
 
 ## Solution layout
 
-| Project | Purpose |
-|---------|---------|
-| `Scrinium` | Avalonia desktop UI (thin client over API) |
-| `Scrinium.Api` | REST/gRPC, JWT, upload, search proxy, SignalR hubs |
-| `Scrinium.Core` | Domain models, ACL, workflow rules, format router |
-| `Scrinium.Infrastructure` | EF Core, MinIO, Solr, Redis, optional Keycloak admin |
-| `Scrinium.Workers` | Pre-render, indexing, Tika/Gotenberg orchestration |
+| Project | Status | Purpose |
+|---------|--------|---------|
+| `Scrinium.Api` | In repo | ASP.NET Core Web API — health, OpenAPI (dev); JWT, ingest, search, SignalR planned |
+| `Scrinium` | In repo | Avalonia desktop UI (thin client over API) |
+| `Scrinium.Core` | Planned | Domain models, ACL, workflow rules, format router |
+| `Scrinium.Infrastructure` | Planned | EF Core, MinIO, Solr, Redis, optional Keycloak admin |
+| `Scrinium.Workers` | Planned | Pre-render, indexing, Tika/Gotenberg orchestration |
 
 **Planned desktop packages** — ReactiveUI, `IdentityModel.OidcClient`, SignalR client, Refit, PDFtoImage (PDFium), ImageSharp.
 

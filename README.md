@@ -10,10 +10,11 @@ Scrinium combines **document archiving**, **workflow automation**, and **full-te
 
 | Path | Description |
 |------|-------------|
+| `src/Scrinium.Api/` | ASP.NET Core Web API (.NET 10) |
 | `src/Scrinium/` | Avalonia desktop shell (.NET 10), MVVM starter |
 | `docs/ARCHITECTURE.md` | Architecture and design reference |
 
-Planned projects (`Scrinium.Api`, `Scrinium.Core`, `Scrinium.Infrastructure`, `Scrinium.Workers`) are described in the architecture doc.
+Planned projects (`Scrinium.Core`, `Scrinium.Infrastructure`, `Scrinium.Workers`) are described in the architecture doc.
 
 ## Getting started
 
@@ -22,6 +23,11 @@ Planned projects (`Scrinium.Api`, `Scrinium.Core`, `Scrinium.Infrastructure`, `S
 ```bash
 cd src
 dotnet build
+
+# API (http://localhost:5243, /health)
+dotnet run --project Scrinium.Api/Scrinium.Api.csproj
+
+# Desktop client
 dotnet run --project Scrinium/Scrinium.csproj
 ```
 
