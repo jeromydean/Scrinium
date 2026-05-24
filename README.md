@@ -6,11 +6,14 @@
   <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white" alt=".NET 10" /></a>
   <a href="https://avaloniaui.net/"><img src="https://img.shields.io/badge/UI-Avalonia-7B68EE?logo=dotnet&logoColor=white" alt="Avalonia" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" /></a>
+  <img src="https://img.shields.io/badge/status-work%20in%20progress-yellow" alt="Work in progress" />
 </p>
 
 # Scrinium
 
-Enterprise document management system. 
+Enterprise document management system.
+
+> **🚧 Work in progress** — Scrinium is in early development. The [architecture](docs/ARCHITECTURE.md) describes the target platform; most infrastructure (Postgres, Solr, Keycloak, MinIO, workers) and product features are not implemented yet. What exists today is a starter API (health check, document ingestion queue) and an Avalonia desktop shell.
 
 | | |
 |---|---|
