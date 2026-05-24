@@ -4,3 +4,15 @@ GET {{Scrinium.Api_HostAddress}}/health
 Accept: application/json
 
 ###
+
+POST {{Scrinium.Api_HostAddress}}/api/ingestion
+Content-Type: multipart/form-data; boundary=----ScriniumBoundary
+
+------ScriniumBoundary
+Content-Disposition: form-data; name="file"; filename="sample.txt"
+Content-Type: text/plain
+
+Sample document body for ingestion queue testing.
+------ScriniumBoundary--
+
+###
