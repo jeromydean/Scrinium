@@ -1,4 +1,7 @@
 <Solution>
   <Project Path="Scrinium.Api/Scrinium.Api.csproj" />
+  <Project Path="Scrinium.Core/Scrinium.Core.csproj" />
+  <Project Path="Scrinium.Infrastructure/Scrinium.Infrastructure.csproj" />
+  <Project Path="Scrinium.Workers/Scrinium.Workers.csproj" />
   <Project Path="Scrinium/Scrinium.csproj" />
 </Solution>

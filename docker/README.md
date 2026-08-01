@@ -55,7 +55,33 @@ Re-run `.\docker\generate-certificates.ps1` if you need a fresh `localhost.cer`.
 | **OpenID configuration** | https://localhost:8443/realms/scrinium/.well-known/openid-configuration |
 | **Admin login** | `admin` / `secret` (from `.env`: `KEYCLOAK_ADMIN`, `KEYCLOAK_ADMIN_PASSWORD`) |
 
-HTTPS uses the self-signed cert from `generate-certificates.ps1` (trusted on the local machine after that script runs). Create the `scrinium` realm to match [`appsettings.json`](../src/Scrinium.Api/appsettings.json).
+HTTPS uses the self-signed cert from `generate-certificates.ps1` (trusted on the local machine after that script runs).
+
+**Bootstrap the `scrinium` realm** (idempotent — safe to re-run):
+
+```powershell
+.\docker\setup-keycloak.ps1
+```
+
+This creates or updates:
+
+| Resource | ID / name |
+|----------|-----------|
+| Realm | `scrinium` |
+| API client (confidential) | `scrinium-api` — direct access grants for local dev |
+| Desktop client (public, PKCE) | `scrinium-avalonia` |
+| Dev user | `devuser` / `devpass` (roles: `user`, `document:read`, `document:write`) |
+| Realm roles | `admin`, `manager`, `user`, `document:*`, `workflow:*`, `folder:manage` |
+
+The API client secret is written to `.env` as `SCRINIUM_API_CLIENT_SECRET`. Get a test JWT:
+
+```powershell
+.\docker\get-dev-token.ps1
+# or for scripts:
+$token = .\docker\get-dev-token.ps1 -Quiet
+```
+
+Matches [`appsettings.json`](../src/Scrinium.Api/appsettings.json) (`Authority`, `Audience`).
 
 ### pgAdmin
 
@@ -95,6 +121,36 @@ Host=localhost;Port=5432;Database=keycloak;Username=appuser;Password=secret
 
 HTTPS uses the self-signed cert from `generate-certificates.ps1` (`docker/certs/solr.pfx`, same localhost cert as Keycloak).
 
+### Redis
+
+| | |
+|---|---|
+| **Host (from host machine)** | `localhost:6379` |
+| **Host (from containers)** | `redis:6379` |
+
+### MinIO
+
+| | |
+|---|---|
+| **S3 API** | http://localhost:9000 |
+| **Console** | http://localhost:9001 |
+| **Default credentials** | `minioadmin` / `minioadmin` (from `.env`: `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`) |
+
+### Apache Tika
+
+| | |
+|---|---|
+| **HTTP API** | http://localhost:9998 |
+| **Host (from containers)** | `http://tika:9998` |
+
+### Gotenberg
+
+| | |
+|---|---|
+| **HTTP API** | http://localhost:3000 |
+| **Health** | http://localhost:3000/health |
+| **Host (from containers)** | `http://gotenberg:3000` |
+
 > **Future:** Investigate Solr authentication and RBAC (Basic Auth, rule-based authorization, integration with Keycloak/API document ACL). Dev Solr is HTTPS-only with no login today.
 
 ### Scrinium API (not in Compose — run with `dotnet run`)
@@ -105,6 +161,7 @@ HTTPS uses the self-signed cert from `generate-certificates.ps1` (`docker/certs/
 | **HTTPS** | https://localhost:7299 |
 | **Health check** | http://localhost:5243/health |
 | **OpenAPI (Development)** | http://localhost:5243/openapi/v1.json |
+| **SignalR ingestion hub** | ws://localhost:5243/hubs/ingestion |
 
 ---
 
@@ -113,20 +170,14 @@ HTTPS uses the self-signed cert from `generate-certificates.ps1` (`docker/certs/
 | Script | Purpose |
 |--------|---------|
 | `generate-certificates.ps1` | Self-signed TLS certs for Keycloak and Solr → `docker/certs/*.pfx` |
+| `setup-keycloak.ps1` | Idempotent Keycloak realm, clients, roles, and dev user bootstrap |
+| `get-dev-token.ps1` | Fetch a dev JWT for API testing (uses `.env` client secret) |
 | `Compose.ps1` | Shared Podman/Docker compose detection |
 | `up.ps1` | Bootstrap `.env` + cert, then `compose up -d` |
 | `down.ps1` | `compose down` (pass `-v` to remove volumes) |
 
 ---
 
-## Planned services (not in Compose yet)
+## Notes
 
-| Service | URL (when added) |
-|---------|------------------|
-| Tika | http://localhost:9998 |
-| Gotenberg | http://localhost:3000 |
-| Redis | `localhost:6379` |
-| MinIO API | http://localhost:9000 |
-| MinIO console | http://localhost:9001 |
-
-See [Local infrastructure](../docs/ARCHITECTURE.md#local-infrastructure) in the architecture doc.
+See [Local infrastructure](../docs/ARCHITECTURE.md#local-infrastructure) in the architecture doc for the full service map.

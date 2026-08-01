@@ -31,3 +31,6 @@ Write-Host "  pgAdmin            http://localhost:5050"
 Write-Host "  Solr               https://localhost:8983/solr/"
 Write-Host "  PostgreSQL         localhost:5432  (scrinium, keycloak)"
 Write-Host "  Scrinium API       http://localhost:5243/health  (dotnet run, not in compose)"
+Write-Host ""
+Write-Host "Next: bootstrap Keycloak realm, clients, and dev user (idempotent):" -ForegroundColor Yellow
+Write-Host "  .\docker\setup-keycloak.ps1"

@@ -110,6 +110,76 @@ services:
       retries: 10
       start_period: 30s
 
+  redis:
+    image: docker.io/library/redis:7-alpine
+    container_name: scrinium-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - scrinium
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: docker.io/minio/minio:latest
+    container_name: scrinium-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - scrinium
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  tika:
+    image: docker.io/apache/tika:latest
+    container_name: scrinium-tika
+    ports:
+      - "9998:9998"
+    networks:
+      - scrinium
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9998/tika || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  gotenberg:
+    image: docker.io/gotenberg/gotenberg:8
+    container_name: scrinium-gotenberg
+    environment:
+      CHROMIUM_DISABLE_JAVASCRIPT: "true"
+      LIBREOFFICE_AUTO_START: "true"
+    ports:
+      - "3000:3000"
+    networks:
+      - scrinium
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
 networks:
   scrinium:
     driver: bridge
@@ -121,3 +191,7 @@ volumes:
     name: scrinium-pgadmin-data
   solr-data:
     name: scrinium-solr-data
+  redis-data:
+    name: scrinium-redis-data
+  minio-data:
+    name: scrinium-minio-data
