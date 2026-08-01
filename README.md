@@ -52,7 +52,47 @@ dotnet run --project Scrinium.Api/Scrinium.Api.csproj
 dotnet run --project Scrinium/Scrinium.csproj
 ```
 
-> 🐳 **Full stack** — Postgres, Solr, Keycloak, MinIO, and related services will be documented when `docker-compose` is added. See [Local infrastructure](docs/ARCHITECTURE.md#local-infrastructure) in the architecture doc.
+### Local infrastructure (Podman / Docker)
+
+**Prerequisites:** [Podman](https://podman.io/) (preferred) or [Docker Desktop](https://www.docker.com/products/docker-desktop/) with Compose.
+
+#### 1. Generate the Keycloak TLS certificate (one-time, Windows)
+
+Keycloak runs over **HTTPS** using a self-signed certificate. From the repo root, in PowerShell **as Administrator** (or approve the elevation prompt when `up.ps1` runs it for you):
+
+```powershell
+.\docker\generate-certificates.ps1
+```
+
+This creates `docker/certs/keycloak.pfx`, `docker/certs/solr.pfx`, and `docker/certs/localhost.cer` (password: `password`), adds the cert to the Windows Trusted Root store (Edge/Chrome), and is gitignored. **Firefox** needs `security.enterprise_roots.enabled = true` or manual import of `localhost.cer` — see [docker/README.md](docker/README.md#tls-certificates-and-firefox). Re-run when certs expire (default 365 days).
+
+#### 2. Start the stack
+
+```powershell
+# From repo root — creates .env, ensures cert exists, prefers podman compose
+.\docker\up.ps1
+
+# Or manually:
+copy .env.example .env
+podman compose up -d
+```
+
+On Windows/macOS, if Podman reports a connection error, start the Podman machine first: `podman machine start`.
+
+**Service URLs:** see **[docker/README.md](docker/README.md#service-urls)** for admin consoles, connection strings, and API endpoints.
+
+| Service | URL |
+|---------|-----|
+| Keycloak admin | https://localhost:8443/admin |
+| Keycloak realm (OIDC) | https://localhost:8443/realms/scrinium |
+| pgAdmin | http://localhost:5050 |
+| Solr | https://localhost:8983/solr/ |
+| PostgreSQL | `localhost:5432` (databases: `scrinium`, `keycloak`) |
+| Scrinium API | http://localhost:5243 ([`/health`](http://localhost:5243/health)) |
+
+Default credentials are in [`.env.example`](.env.example) (local dev only). Stop the stack with `.\docker\down.ps1` or `podman compose down`.
+
+MinIO, Tika, Gotenberg, and Redis will be added later. See [Local infrastructure](docs/ARCHITECTURE.md#local-infrastructure) in the architecture doc.
 
 ## 📄 License
 

@@ -44,7 +44,7 @@ Clients (Avalonia desktop first) talk only to the ASP.NET Core API. The API orch
 | 🔷 | Language / runtime | C# [.NET 10](https://dotnet.microsoft.com/) | API, workers, desktop client |
 | 🖥️ | UI | [Avalonia](https://avaloniaui.net/) | Cross-platform desktop (Windows, Linux, macOS) |
 | 🐘 | Database | PostgreSQL 16 | Metadata, ACLs, workflows, audit (ACID); [EF Core](https://learn.microsoft.com/ef/core/) |
-| 🔍 | Full-text search | Apache Solr 9 | Content indexing, faceted and fuzzy search |
+| 🔍 | Full-text search | Apache Solr 10 | Content indexing, faceted and fuzzy search |
 | 📄 | Text extraction | Apache Tika | Office, email, HTML, etc. — metadata and text |
 | 🔄 | Conversion | Gotenberg 8 | Normalize formats to PDF (LibreOffice + Chromium) |
 | 📑 | PDF operations | PDFium (+ ZXing) | Text/images from PDF, page render, barcodes |
@@ -315,11 +315,13 @@ Realm: scrinium
 | Concern | Notes |
 |---------|--------|
 | Role | Derived index for full text, facets, fuzzy/phonetic search |
-| Dev setup | `solr:9`, core `documents` via `solr-precreate` |
+| Dev setup | `solr:10`, core `documents` via `solr-precreate` in [`docker-compose.yml`](../docker-compose.yml) |
 | .NET | SolrNet or HTTP API |
 | Tika | Solr can index many formats; standalone Tika still used for extraction pipeline control |
 | Scale-out | SolrCloud on Kubernetes for large deployments |
 | Recovery | Admin reindex: load all document IDs from Postgres, replay indexing pipeline |
+| Security (dev) | HTTPS via self-signed cert in [`docker-compose.yml`](../docker-compose.yml); no HTTP auth yet |
+| **Future** | Investigate Solr authentication and RBAC (e.g. `BasicAuthPlugin`, `RuleBasedAuthorizationPlugin`, alignment with Keycloak/API ACL model) before production or multi-user dev |
 
 ---
 
@@ -359,27 +361,29 @@ Rules run in **phase 1** after extraction so routing and tagging use consistent 
 
 ## 🐳 Local infrastructure
 
-Target Docker Compose services (file to be added to the repo):
+Docker Compose services in [`docker-compose.yml`](../docker-compose.yml). **URLs and credentials:** [docker/README.md](../docker/README.md#service-urls).
 
-| | Service | Image (indicative) | Port |
-|---|---------|-------------------|------|
-| 🐘 | PostgreSQL | `postgres:16` | 5432 |
-| 🔐 | Keycloak | `quay.io/keycloak/keycloak:24` | 8080 |
-| 📄 | Tika | `apache/tika:latest` | 9998 |
-| 🔄 | Gotenberg | `gotenberg/gotenberg:8` | 3000 |
-| 🔍 | Solr | `solr:9` | 8983 |
-| ⚡ | Redis | `redis:7-alpine` | 6379 |
-| 🪣 | MinIO | `minio/minio:latest` | 9000, 9001 (console) |
+| | Service | Image | URL |
+|---|---------|-------|-----|
+| 🐘 | PostgreSQL | `postgres:18` | `localhost:5432` |
+| 🗄️ | pgAdmin | `dpage/pgadmin4:9` | http://localhost:5050 |
+| 🔐 | Keycloak | `quay.io/keycloak/keycloak:26.7` | https://localhost:8443/admin |
+| 📄 | Tika | `apache/tika:latest` | http://localhost:9998 *(planned)* |
+| 🔄 | Gotenberg | `gotenberg/gotenberg:8` | http://localhost:3000 *(planned)* |
+| 🔍 | Solr | `solr:10` | https://localhost:8983/solr/ |
+| ⚡ | Redis | `redis:7-alpine` | `localhost:6379` *(planned)* |
+| 🪣 | MinIO | `minio/minio:latest` | http://localhost:9000, console http://localhost:9001 *(planned)* |
 
-Example Solr service definition:
+Example Solr service definition (see [`docker-compose.yml`](../docker-compose.yml) for the live config):
 
 ```yaml
 solr:
-  image: solr:9
+  image: docker.io/library/solr:10
+  container_name: scrinium-solr
   ports:
     - "8983:8983"
   volumes:
-    - solrdata:/var/solr
+    - solr-data:/var/solr
   command:
     - solr-precreate
     - documents
@@ -410,6 +414,7 @@ solr:
 - Versioning (immutable blob per version vs history table)
 - Search scope (all versions vs latest; trash/recycle)
 - Keycloak group → Postgres principal sync (on login vs periodic vs event-driven)
+- Solr authentication and RBAC — investigate Solr security plugins vs enforcing access only in the API; map to document ACL and Keycloak roles
 - Compliance (retention, legal hold, export)
 
 ---
