@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 namespace Scrinium.Core.Jobs;
 
-public class DocumentIngestJob
+public class ArchiveIngestJob
 {
-  public Guid DocumentId { get; set; }
+  public Guid ArchiveId { get; set; }
 
   public string StagingPath { get; set; } = string.Empty;
 
@@ -23,18 +23,24 @@ public class DocumentIngestJob
   public string TraceId { get; set; } = string.Empty;
 }
 
-public class PageIngestJob
+public class ArchiveSheetIngestJob
 {
-  public Guid DocumentId { get; set; }
+  public Guid ArchiveId { get; set; }
 
-  public int PageNumber { get; set; }
+  public Guid ArchiveSheetId { get; set; }
+
+  public Guid BundleId { get; set; }
+
+  public int SequenceInArchive { get; set; }
 
   public string TraceId { get; set; } = string.Empty;
 }
 
-public class FinalizeIngestJob
+public class FinalizeBundleJob
 {
-  public Guid DocumentId { get; set; }
+  public Guid BundleId { get; set; }
+
+  public Guid ArchiveId { get; set; }
 
   public string TraceId { get; set; } = string.Empty;
 }
@@ -44,4 +50,8 @@ public class QueueMessage<T>
   public string MessageId { get; set; } = string.Empty;
 
   public T Payload { get; set; } = default!;
+
+  public int DeliveryCount { get; set; } = 1;
+
+  public bool WasReclaimed { get; set; }
 }

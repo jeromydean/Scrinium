@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- OpenApi.NET 2.x is required until Microsoft.AspNetCore.OpenApi supports 3.x -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+</Project>

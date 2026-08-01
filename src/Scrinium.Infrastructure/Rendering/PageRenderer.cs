@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PDFtoImage;
-using Scrinium.Core.Extraction;
 using Scrinium.Core.Ports;
 using Scrinium.Core.Rendering;
 using Scrinium.Core.Storage;
@@ -32,58 +31,70 @@ public sealed class PageRenderer : IPageRenderer
     _ = logger;
   }
 
-  public async Task<PageRenderResult> RenderPdfPageAsync(
+  public Task<IRasterizedPage> RasterizePdfPageAsync(
     byte[] pdfBytes,
     int pageNumber,
-    Guid documentId,
     CancellationToken cancellationToken)
   {
+    cancellationToken.ThrowIfCancellationRequested();
+
     int pageIndex = pageNumber - 1;
     if (pageIndex < 0 || pageIndex >= Conversion.GetPageCount(pdfBytes))
     {
       throw new ArgumentOutOfRangeException(nameof(pageNumber), "PDF page number is out of range.");
     }
 
-    using SKBitmap sourceBitmap = Conversion.ToImage(
+    SKBitmap sourceBitmap = Conversion.ToImage(
       pdfBytes,
       (Index)pageIndex,
       options: new(Dpi: _options.PdfRenderDpi));
 
-    PageRenderResult result = await UploadTiersAsync(sourceBitmap, documentId, pageNumber, cancellationToken);
-    result.PlainText = ExtractPageText(pdfBytes, pageNumber);
-    result.HasTextLayer = !string.IsNullOrWhiteSpace(result.PlainText);
-    return result;
+    return Task.FromResult<IRasterizedPage>(new SkiaRasterizedPage(sourceBitmap));
   }
 
-  public async Task<PageRenderResult> RenderImageAsync(
+  public Task<IRasterizedPage> DecodeImageAsync(
     byte[] imageBytes,
-    string contentType,
-    int pageNumber,
-    Guid documentId,
     CancellationToken cancellationToken)
   {
-    using SKBitmap sourceBitmap = SKBitmap.Decode(imageBytes)
+    cancellationToken.ThrowIfCancellationRequested();
+
+    SKBitmap sourceBitmap = SKBitmap.Decode(imageBytes)
       ?? throw new InvalidOperationException("Unable to decode image for rendering.");
 
-    return await UploadTiersAsync(sourceBitmap, documentId, pageNumber, cancellationToken);
+    return Task.FromResult<IRasterizedPage>(new SkiaRasterizedPage(sourceBitmap));
   }
 
-  private async Task<PageRenderResult> UploadTiersAsync(
-    SKBitmap sourceBitmap,
-    Guid documentId,
-    int pageNumber,
+  public async Task<IReadOnlyDictionary<RenderTier, string>> UploadRenderTiersAsync(
+    IRasterizedPage page,
+    Guid archiveId,
+    Guid archiveSheetId,
+    int sequenceInArchive,
     CancellationToken cancellationToken)
   {
-    PageRenderResult result = new();
-    foreach (RenderTier tier in Enum.GetValues<RenderTier>())
+    if (page is not SkiaRasterizedPage skiaPage)
     {
-      string objectKey = BlobKeys.PageRender(documentId, tier, pageNumber);
-      await using MemoryStream webpStream = EncodeTier(sourceBitmap, tier);
-      await _blobStore.PutAsync(objectKey, webpStream, cancellationToken);
-      result.ObjectKeys[tier] = objectKey;
+      throw new ArgumentException("Unsupported rasterized page implementation.", nameof(page));
     }
 
-    return result;
+    Dictionary<RenderTier, string> objectKeys = new();
+    foreach (RenderTier tier in Enum.GetValues<RenderTier>())
+    {
+      cancellationToken.ThrowIfCancellationRequested();
+
+      string objectKey = BlobKeys.SheetRender(archiveId, archiveSheetId, tier, sequenceInArchive);
+      await using MemoryStream webpStream = EncodeTier(skiaPage.Bitmap, tier);
+      await _blobStore.PutAsync(objectKey, webpStream, cancellationToken);
+      objectKeys[tier] = objectKey;
+    }
+
+    return objectKeys;
+  }
+
+  public string ExtractPdfPageText(byte[] pdfBytes, int pageNumber)
+  {
+    using PdfDocument document = PdfDocument.Open(pdfBytes);
+    Page page = document.GetPage(pageNumber);
+    return page.Text?.Trim() ?? string.Empty;
   }
 
   private MemoryStream EncodeTier(SKBitmap sourceBitmap, RenderTier tier)
@@ -93,7 +104,7 @@ public sealed class PageRenderer : IPageRenderer
     int targetHeight = Math.Max(1, (int)Math.Round(sourceBitmap.Height * scale));
 
     SKImageInfo info = new(targetWidth, targetHeight, sourceBitmap.ColorType, sourceBitmap.AlphaType);
-    using SKBitmap resized = sourceBitmap.Resize(info, SKFilterQuality.High)
+    using SKBitmap resized = sourceBitmap.Resize(info, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear))
       ?? throw new InvalidOperationException("Failed to resize page bitmap.");
 
     using SKImage image = SKImage.FromBitmap(resized);
@@ -102,12 +113,5 @@ public sealed class PageRenderer : IPageRenderer
     data.AsStream().CopyTo(stream);
     stream.Position = 0;
     return stream;
-  }
-
-  private static string ExtractPageText(byte[] pdfBytes, int pageNumber)
-  {
-    using PdfDocument document = PdfDocument.Open(pdfBytes);
-    Page page = document.GetPage(pageNumber);
-    return page.Text?.Trim() ?? string.Empty;
   }
 }

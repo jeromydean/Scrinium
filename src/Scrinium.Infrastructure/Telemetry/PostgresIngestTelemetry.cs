@@ -48,8 +48,9 @@ public sealed class PostgresIngestTelemetry : IIngestTelemetry
       _logEntry = new IngestStepLog
       {
         Id = Guid.NewGuid(),
-        DocumentId = context.DocumentId,
-        PageNumber = context.PageNumber,
+        ArchiveId = context.ArchiveId,
+        ArchiveSheetId = context.ArchiveSheetId,
+        BundleId = context.BundleId,
         StepName = context.StepName,
         WorkerType = context.WorkerType,
         WorkerId = context.WorkerId,
@@ -59,12 +60,13 @@ public sealed class PostgresIngestTelemetry : IIngestTelemetry
       };
 
       _dbContext.IngestStepLogs.Add(_logEntry);
-      _ = _dbContext.SaveChangesAsync();
+      _dbContext.SaveChanges();
 
       using (_logger.BeginScope(new
       {
-        _context.DocumentId,
-        _context.PageNumber,
+        _context.ArchiveId,
+        _context.ArchiveSheetId,
+        _context.BundleId,
         _context.StepName,
         _context.WorkerType,
         _context.TraceId,
@@ -88,13 +90,13 @@ public sealed class PostgresIngestTelemetry : IIngestTelemetry
     {
       _logEntry.Status = "retry";
       _logEntry.Metadata["attempt"] = attempt;
-      _ = _dbContext.SaveChangesAsync();
+      _dbContext.SaveChanges();
 
       _logger.LogWarning(
-        "Ingest step {StepName} retry attempt {Attempt} for document {DocumentId}.",
+        "Ingest step {StepName} retry attempt {Attempt} for archive {ArchiveId}.",
         _context.StepName,
         attempt,
-        _context.DocumentId);
+        _context.ArchiveId);
     }
 
     public void Dispose()
@@ -118,12 +120,13 @@ public sealed class PostgresIngestTelemetry : IIngestTelemetry
       _logEntry.ErrorMessage = errorMessage;
       _logEntry.CompletedAt = DateTimeOffset.UtcNow;
       _logEntry.DurationMs = _stopwatch.ElapsedMilliseconds;
-      _ = _dbContext.SaveChangesAsync();
+      _dbContext.SaveChanges();
 
       using (_logger.BeginScope(new
       {
-        _context.DocumentId,
-        _context.PageNumber,
+        _context.ArchiveId,
+        _context.ArchiveSheetId,
+        _context.BundleId,
         _context.StepName,
         DurationMs = _logEntry.DurationMs,
         _context.TraceId,

@@ -34,6 +34,7 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for system diagrams, ingest
 | 🌐 | `src/Scrinium.Api/` | ASP.NET Core Web API (.NET 10) — ingestion queue, health, OpenAPI |
 | 🖥️ | `src/Scrinium/` | Avalonia desktop shell (.NET 10), MVVM starter |
 | 📐 | `docs/ARCHITECTURE.md` | Architecture and design reference |
+| 📜 | `docs/THIRD_PARTY.md` | Third-party components and licenses |
 
 Planned projects (`Scrinium.Core`, `Scrinium.Infrastructure`, `Scrinium.Workers`) are described in the architecture doc.
 

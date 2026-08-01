@@ -1,45 +1,65 @@
+using System;
+using System.Net.Http;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Microsoft.Extensions.Configuration;
+using Scrinium.Configuration;
+using Scrinium.Options;
+using Scrinium.Services;
 using Scrinium.ViewModels;
 using Scrinium.Views;
 
-namespace Scrinium
+namespace Scrinium;
+
+public partial class App : Application
 {
-  public partial class App : Application
+  public override void Initialize()
   {
-    public override void Initialize()
-    {
-      AvaloniaXamlLoader.Load(this);
-    }
+    AvaloniaXamlLoader.Load(this);
+  }
 
-    public override void OnFrameworkInitializationCompleted()
+  public override void OnFrameworkInitializationCompleted()
+  {
+    if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
     {
-      if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+      IConfiguration configuration = new ConfigurationBuilder()
+        .SetBasePath(AppContext.BaseDirectory)
+        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+        .AddRepoEnvFile()
+        .AddEnvironmentVariables(prefix: "SCRINIUM_")
+        .Build();
+
+      ApiOptions apiOptions = configuration.GetSection("Api").Get<ApiOptions>() ?? new ApiOptions();
+      AuthOptions authOptions = configuration.GetSection("Auth").Get<AuthOptions>() ?? new AuthOptions();
+
+      HttpClientHandler authHandler = new()
       {
-        // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
-        // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
-        //DisableAvaloniaDataAnnotationValidation();
-        desktop.MainWindow = new MainWindow
-        {
-          DataContext = new MainWindowViewModel(),
-        };
-      }
+        ServerCertificateCustomValidationCallback =
+          HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+      };
 
-      base.OnFrameworkInitializationCompleted();
+      HttpClient authHttpClient = new(authHandler);
+      InteractiveAuthService authService = new(authOptions, authHttpClient);
+
+      HttpClient apiHttpClient = new();
+      ScriniumApiClient apiClient = new(apiHttpClient, apiOptions, authService);
+
+      MainWindowViewModel viewModel = new(apiClient, authService);
+      MainWindow mainWindow = new()
+      {
+        DataContext = viewModel,
+      };
+
+      mainWindow.Opened += async (_, _) =>
+      {
+        await viewModel.InitializeAsync(mainWindow);
+      };
+
+      desktop.MainWindow = mainWindow;
     }
 
-    //private void DisableAvaloniaDataAnnotationValidation()
-    //{
-    //  // Get an array of plugins to remove
-    //  var dataValidationPluginsToRemove =
-    //      BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
-
-    //  // remove each entry found
-    //  foreach (var plugin in dataValidationPluginsToRemove)
-    //  {
-    //    BindingPlugins.DataValidators.Remove(plugin);
-    //  }
-    //}
+    base.OnFrameworkInitializationCompleted();
   }
 }

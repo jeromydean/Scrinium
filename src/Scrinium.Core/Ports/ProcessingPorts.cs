@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Scrinium.Core.Extraction;
+using Scrinium.Core.Rendering;
 
 namespace Scrinium.Core.Ports;
 
@@ -21,39 +23,57 @@ public interface IDocumentNormalizer
 
 public interface IDocumentExtractor
 {
-  Task<ExtractionResult> ExtractFromPdfAsync(
+  Task<Dictionary<string, string>> ExtractPdfMetadataAsync(
     byte[] pdfBytes,
     CancellationToken cancellationToken);
 
-  Task<ExtractionResult> ExtractFromOriginalAsync(
+  Task<Dictionary<string, string>> ExtractTikaMetadataAsync(
     byte[] content,
     string contentType,
-    string fileName,
+    CancellationToken cancellationToken);
+
+  Task<string> ExtractTikaTextAsync(
+    byte[] content,
+    string contentType,
+    CancellationToken cancellationToken);
+
+  int GetPdfPageCount(byte[] pdfBytes);
+}
+
+public interface IBarcodeScanner
+{
+  Task<IReadOnlyList<BarcodeResult>> ScanAsync(
+    IRasterizedPage page,
     CancellationToken cancellationToken);
 }
 
 public interface IPageRenderer
 {
-  Task<PageRenderResult> RenderPdfPageAsync(
+  Task<IRasterizedPage> RasterizePdfPageAsync(
     byte[] pdfBytes,
     int pageNumber,
-    Guid documentId,
     CancellationToken cancellationToken);
 
-  Task<PageRenderResult> RenderImageAsync(
+  Task<IRasterizedPage> DecodeImageAsync(
     byte[] imageBytes,
-    string contentType,
-    int pageNumber,
-    Guid documentId,
     CancellationToken cancellationToken);
+
+  Task<IReadOnlyDictionary<RenderTier, string>> UploadRenderTiersAsync(
+    IRasterizedPage page,
+    Guid archiveId,
+    Guid archiveSheetId,
+    int sequenceInArchive,
+    CancellationToken cancellationToken);
+
+  string ExtractPdfPageText(byte[] pdfBytes, int pageNumber);
 }
 
 public interface ISearchIndexer
 {
-  Task IndexDocumentAsync(Guid documentId, CancellationToken cancellationToken);
+  Task IndexBundleAsync(Guid bundleId, CancellationToken cancellationToken);
 }
 
-public interface IDocumentReadyNotifier
+public interface IBundleReadyNotifier
 {
-  Task NotifyDocumentReadyAsync(Guid documentId, CancellationToken cancellationToken);
+  Task NotifyBundleReadyAsync(Guid bundleId, CancellationToken cancellationToken);
 }

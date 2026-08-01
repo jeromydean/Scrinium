@@ -10,13 +10,19 @@ public class ScriniumDbContext : DbContext
   {
   }
 
-  public DbSet<Document> Documents => Set<Document>();
+  public DbSet<Archive> Archives => Set<Archive>();
 
-  public DbSet<DocumentPage> DocumentPages => Set<DocumentPage>();
+  public DbSet<ArchiveSheet> ArchiveSheets => Set<ArchiveSheet>();
+
+  public DbSet<Bundle> Bundles => Set<Bundle>();
+
+  public DbSet<Sheet> Sheets => Set<Sheet>();
+
+  public DbSet<SheetBarcode> SheetBarcodes => Set<SheetBarcode>();
 
   public DbSet<Tag> Tags => Set<Tag>();
 
-  public DbSet<DocumentTag> DocumentTags => Set<DocumentTag>();
+  public DbSet<BundleTag> BundleTags => Set<BundleTag>();
 
   public DbSet<IngestStepLog> IngestStepLogs => Set<IngestStepLog>();
 

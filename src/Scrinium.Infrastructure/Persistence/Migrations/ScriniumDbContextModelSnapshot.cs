@@ -17,12 +17,12 @@ namespace Scrinium.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Scrinium.Core.Domain.Document", b =>
+            modelBuilder.Entity("Scrinium.Core.Domain.Archive", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -44,15 +44,9 @@ namespace Scrinium.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("ExtractedText")
-                        .HasColumnType("text");
-
                     b.Property<string>("ExtractionWarnings")
                         .IsRequired()
                         .HasColumnType("jsonb");
-
-                    b.Property<bool>("FinalizeEnqueued")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("IdempotencyKey")
                         .HasMaxLength(256)
@@ -76,18 +70,15 @@ namespace Scrinium.Infrastructure.Persistence.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
-                    b.Property<int>("PageCount")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PagesFailedCount")
-                        .HasColumnType("integer");
-
                     b.Property<string>("ProcessingStep")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
-                    b.Property<DateTimeOffset?>("ReadyAt")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<int>("SheetCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SheetsFailedCount")
+                        .HasColumnType("integer");
 
                     b.Property<string>("StagingPath")
                         .HasMaxLength(1024)
@@ -117,19 +108,17 @@ namespace Scrinium.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UploadedAt");
 
-                    b.ToTable("documents", (string)null);
+                    b.ToTable("archives", (string)null);
                 });
 
-            modelBuilder.Entity("Scrinium.Core.Domain.DocumentPage", b =>
+            modelBuilder.Entity("Scrinium.Core.Domain.ArchiveSheet", b =>
                 {
-                    b.Property<Guid>("DocumentId")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("PageNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("FrameIndex")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("ArchiveId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("HasTextLayer")
                         .HasColumnType("boolean");
@@ -161,19 +150,79 @@ namespace Scrinium.Infrastructure.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
+                    b.Property<int>("SequenceInArchive")
+                        .HasColumnType("integer");
+
                     b.Property<string>("SourceKind")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
-                    b.HasKey("DocumentId", "PageNumber");
+                    b.HasKey("Id");
 
-                    b.ToTable("document_pages", (string)null);
+                    b.HasIndex("ArchiveId", "SequenceInArchive")
+                        .IsUnique();
+
+                    b.ToTable("archive_sheets", (string)null);
                 });
 
-            modelBuilder.Entity("Scrinium.Core.Domain.DocumentTag", b =>
+            modelBuilder.Entity("Scrinium.Core.Domain.Bundle", b =>
                 {
-                    b.Property<Guid>("DocumentId")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("FinalizeEnqueued")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("IngestQuality")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("ReadyAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SheetsFailedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SourceArchiveId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("TraceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceArchiveId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("bundles", (string)null);
+                });
+
+            modelBuilder.Entity("Scrinium.Core.Domain.BundleTag", b =>
+                {
+                    b.Property<Guid>("BundleId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("TagId")
@@ -187,11 +236,11 @@ namespace Scrinium.Infrastructure.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
-                    b.HasKey("DocumentId", "TagId");
+                    b.HasKey("BundleId", "TagId");
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("document_tags", (string)null);
+                    b.ToTable("bundle_tags", (string)null);
                 });
 
             modelBuilder.Entity("Scrinium.Core.Domain.IngestStepLog", b =>
@@ -200,11 +249,17 @@ namespace Scrinium.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ArchiveId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ArchiveSheetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BundleId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DocumentId")
-                        .HasColumnType("uuid");
 
                     b.Property<long?>("DurationMs")
                         .HasColumnType("bigint");
@@ -215,9 +270,6 @@ namespace Scrinium.Infrastructure.Persistence.Migrations
                     b.Property<string>("Metadata")
                         .IsRequired()
                         .HasColumnType("jsonb");
-
-                    b.Property<int?>("PageNumber")
-                        .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("StartedAt")
                         .HasColumnType("timestamp with time zone");
@@ -250,9 +302,70 @@ namespace Scrinium.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TraceId");
 
-                    b.HasIndex("DocumentId", "StartedAt");
+                    b.HasIndex("ArchiveId", "StartedAt");
+
+                    b.HasIndex("ArchiveSheetId", "StartedAt");
+
+                    b.HasIndex("BundleId", "StartedAt");
 
                     b.ToTable("ingest_step_log", (string)null);
+                });
+
+            modelBuilder.Entity("Scrinium.Core.Domain.Sheet", b =>
+                {
+                    b.Property<Guid>("BundleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArchiveSheetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("BundleId", "ArchiveSheetId");
+
+                    b.HasIndex("ArchiveSheetId");
+
+                    b.HasIndex("BundleId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("sheets", (string)null);
+                });
+
+            modelBuilder.Entity("Scrinium.Core.Domain.SheetBarcode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArchiveSheetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BoundingBox")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("bounding_box");
+
+                    b.Property<float>("Confidence")
+                        .HasColumnType("real");
+
+                    b.Property<string>("Symbology")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArchiveSheetId");
+
+                    b.HasIndex("Value");
+
+                    b.ToTable("sheet_barcodes", (string)null);
                 });
 
             modelBuilder.Entity("Scrinium.Core.Domain.Tag", b =>
@@ -289,46 +402,100 @@ namespace Scrinium.Infrastructure.Persistence.Migrations
                     b.ToTable("tags", (string)null);
                 });
 
-            modelBuilder.Entity("Scrinium.Core.Domain.DocumentPage", b =>
+            modelBuilder.Entity("Scrinium.Core.Domain.ArchiveSheet", b =>
                 {
-                    b.HasOne("Scrinium.Core.Domain.Document", "Document")
-                        .WithMany("Pages")
-                        .HasForeignKey("DocumentId")
+                    b.HasOne("Scrinium.Core.Domain.Archive", "Archive")
+                        .WithMany("ArchiveSheets")
+                        .HasForeignKey("ArchiveId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Document");
+                    b.Navigation("Archive");
                 });
 
-            modelBuilder.Entity("Scrinium.Core.Domain.DocumentTag", b =>
+            modelBuilder.Entity("Scrinium.Core.Domain.Bundle", b =>
                 {
-                    b.HasOne("Scrinium.Core.Domain.Document", "Document")
-                        .WithMany("DocumentTags")
-                        .HasForeignKey("DocumentId")
+                    b.HasOne("Scrinium.Core.Domain.Archive", "SourceArchive")
+                        .WithMany("Bundles")
+                        .HasForeignKey("SourceArchiveId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("SourceArchive");
+                });
+
+            modelBuilder.Entity("Scrinium.Core.Domain.BundleTag", b =>
+                {
+                    b.HasOne("Scrinium.Core.Domain.Bundle", "Bundle")
+                        .WithMany("BundleTags")
+                        .HasForeignKey("BundleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Scrinium.Core.Domain.Tag", "Tag")
-                        .WithMany("DocumentTags")
+                        .WithMany("BundleTags")
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Document");
+                    b.Navigation("Bundle");
 
                     b.Navigation("Tag");
                 });
 
-            modelBuilder.Entity("Scrinium.Core.Domain.Document", b =>
+            modelBuilder.Entity("Scrinium.Core.Domain.Sheet", b =>
                 {
-                    b.Navigation("DocumentTags");
+                    b.HasOne("Scrinium.Core.Domain.ArchiveSheet", "ArchiveSheet")
+                        .WithMany("BundleMemberships")
+                        .HasForeignKey("ArchiveSheetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("Pages");
+                    b.HasOne("Scrinium.Core.Domain.Bundle", "Bundle")
+                        .WithMany("Sheets")
+                        .HasForeignKey("BundleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ArchiveSheet");
+
+                    b.Navigation("Bundle");
+                });
+
+            modelBuilder.Entity("Scrinium.Core.Domain.SheetBarcode", b =>
+                {
+                    b.HasOne("Scrinium.Core.Domain.ArchiveSheet", "ArchiveSheet")
+                        .WithMany("Barcodes")
+                        .HasForeignKey("ArchiveSheetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ArchiveSheet");
+                });
+
+            modelBuilder.Entity("Scrinium.Core.Domain.Archive", b =>
+                {
+                    b.Navigation("ArchiveSheets");
+
+                    b.Navigation("Bundles");
+                });
+
+            modelBuilder.Entity("Scrinium.Core.Domain.ArchiveSheet", b =>
+                {
+                    b.Navigation("Barcodes");
+
+                    b.Navigation("BundleMemberships");
+                });
+
+            modelBuilder.Entity("Scrinium.Core.Domain.Bundle", b =>
+                {
+                    b.Navigation("BundleTags");
+
+                    b.Navigation("Sheets");
                 });
 
             modelBuilder.Entity("Scrinium.Core.Domain.Tag", b =>
                 {
-                    b.Navigation("DocumentTags");
+                    b.Navigation("BundleTags");
                 });
 #pragma warning restore 612, 618
         }

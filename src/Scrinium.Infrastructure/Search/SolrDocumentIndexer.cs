@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Scrinium.Core.Domain;
 using Scrinium.Core.Ports;
 using Scrinium.Infrastructure.Options;
 using Scrinium.Infrastructure.Persistence;
@@ -35,54 +36,70 @@ public sealed class SolrDocumentIndexer : ISearchIndexer
     _httpClient.Timeout = TimeSpan.FromSeconds(_options.TimeoutSeconds);
   }
 
-  public async Task IndexDocumentAsync(Guid documentId, CancellationToken cancellationToken)
+  public async Task IndexBundleAsync(Guid bundleId, CancellationToken cancellationToken)
   {
-    Core.Domain.Document? document = await _dbContext.Documents
-      .Include(x => x.DocumentTags)
+    Bundle? bundle = await _dbContext.Bundles
+      .AsNoTracking()
+      .Include(x => x.BundleTags)
       .ThenInclude(x => x.Tag)
-      .Include(x => x.Pages)
-      .FirstOrDefaultAsync(x => x.Id == documentId, cancellationToken);
+      .Include(x => x.Sheets)
+      .ThenInclude(x => x.ArchiveSheet)
+      .ThenInclude(x => x.Barcodes)
+      .FirstOrDefaultAsync(x => x.Id == bundleId, cancellationToken);
 
-    if (document is null)
+    if (bundle is null)
     {
-      throw new InvalidOperationException($"Document {documentId} was not found for indexing.");
+      throw new InvalidOperationException($"Bundle {bundleId} was not found for indexing.");
     }
 
-    IEnumerable<string> pageTexts = document.Pages
-      .OrderBy(x => x.PageNumber)
-      .Select(x => x.PlainText)
-      .Where(x => !string.IsNullOrWhiteSpace(x))
-      .Select(x => x!);
-
-    string combinedText = string.Join(
-      "\n\n",
-      new[] { document.ExtractedText ?? string.Empty }.Concat(pageTexts)
-        .Where(x => !string.IsNullOrWhiteSpace(x)));
-
-    List<string> tags = document.DocumentTags
+    List<string> tags = bundle.BundleTags
       .Select(x => x.Tag.Name)
       .Distinct(StringComparer.OrdinalIgnoreCase)
       .ToList();
 
-    Dictionary<string, object?> solrDoc = new()
-    {
-      ["id"] = document.Id.ToString("D"),
-      ["document_id_s"] = document.Id.ToString("D"),
-      ["file_name_s"] = document.OriginalFileName,
-      ["content_type_s"] = document.ContentType,
-      ["content_txt"] = combinedText,
-      ["page_count_i"] = document.PageCount,
-      ["uploaded_at_dt"] = document.UploadedAt.UtcDateTime.ToString("o"),
-      ["tags_ss"] = tags,
-    };
+    string bundleIdValue = bundle.Id.ToString("D");
+    string? archiveIdValue = bundle.SourceArchiveId?.ToString("D");
 
-    foreach (KeyValuePair<string, string> entry in document.ClientMetadata)
+    List<Dictionary<string, object?>> solrDocs = bundle.Sheets
+      .OrderBy(x => x.SortOrder)
+      .Select(membership =>
+      {
+        ArchiveSheet sheet = membership.ArchiveSheet;
+        List<string> barcodes = sheet.Barcodes
+          .Select(x => x.Value)
+          .Where(x => !string.IsNullOrWhiteSpace(x))
+          .Distinct(StringComparer.Ordinal)
+          .ToList();
+
+        return new Dictionary<string, object?>
+        {
+          ["id"] = sheet.Id.ToString("D"),
+          ["archive_sheet_id_s"] = sheet.Id.ToString("D"),
+          ["archive_id_s"] = archiveIdValue ?? sheet.ArchiveId.ToString("D"),
+          ["bundle_ids_ss"] = new[] { bundleIdValue },
+          ["sequence_in_archive_i"] = sheet.SequenceInArchive,
+          ["sort_order_i"] = membership.SortOrder,
+          ["title_s"] = bundle.Title,
+          ["content_txt"] = sheet.PlainText ?? string.Empty,
+          ["has_text_layer_b"] = sheet.HasTextLayer,
+          ["barcodes_ss"] = barcodes,
+          ["tags_ss"] = tags,
+          ["created_at_dt"] = bundle.CreatedAt.UtcDateTime.ToString("o"),
+        };
+      })
+      .ToList();
+
+    if (solrDocs.Count == 0)
     {
-      solrDoc[$"client_{SanitizeField(entry.Key)}_s"] = entry.Value;
+      _logger.LogWarning("Bundle {BundleId} has no sheets to index.", bundleId);
+      return;
     }
 
+    // Drop the legacy one-doc-per-bundle id if it was indexed by an earlier build.
+    await DeleteByIdAsync(bundleIdValue, cancellationToken);
+
     string updateUrl = $"{_options.BaseUrl.TrimEnd('/')}/{_options.CoreName}/update?commit=true";
-    string payload = JsonSerializer.Serialize(new[] { solrDoc });
+    string payload = JsonSerializer.Serialize(solrDocs);
     using StringContent content = new(payload, Encoding.UTF8, "application/json");
 
     HttpResponseMessage response = await _httpClient.PostAsync(updateUrl, content, cancellationToken);
@@ -93,14 +110,26 @@ public sealed class SolrDocumentIndexer : ISearchIndexer
         $"Solr indexing failed ({(int)response.StatusCode}): {body}");
     }
 
-    _logger.LogInformation("Indexed document {DocumentId} in Solr.", documentId);
+    _logger.LogInformation(
+      "Indexed {SheetCount} archive sheet(s) for bundle {BundleId} in Solr.",
+      solrDocs.Count,
+      bundleId);
   }
 
-  private static string SanitizeField(string key)
+  private async Task DeleteByIdAsync(string id, CancellationToken cancellationToken)
   {
-    char[] chars = key.ToLowerInvariant()
-      .Select(ch => char.IsLetterOrDigit(ch) ? ch : '_')
-      .ToArray();
-    return new string(chars).Trim('_');
+    string deleteUrl = $"{_options.BaseUrl.TrimEnd('/')}/{_options.CoreName}/update?commit=true";
+    string payload = JsonSerializer.Serialize(new { delete = new { id } });
+    using StringContent content = new(payload, Encoding.UTF8, "application/json");
+    HttpResponseMessage response = await _httpClient.PostAsync(deleteUrl, content, cancellationToken);
+    if (!response.IsSuccessStatusCode)
+    {
+      string body = await response.Content.ReadAsStringAsync(cancellationToken);
+      _logger.LogWarning(
+        "Failed to delete legacy Solr doc {Id} ({Status}): {Body}",
+        id,
+        (int)response.StatusCode,
+        body);
+    }
   }
 }

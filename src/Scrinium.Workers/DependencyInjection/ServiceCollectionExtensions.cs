@@ -12,9 +12,9 @@ public static class ServiceCollectionExtensions
     IConfiguration configuration)
   {
     services.Configure<WorkerOptions>(configuration.GetSection(WorkerOptions.SectionName));
-    services.AddHostedService<DocumentIngestionWorker>();
-    services.AddHostedService<PageIngestionWorker>();
-    services.AddHostedService<FinalizeIngestionWorker>();
+    services.AddHostedService<ArchiveIngestionWorker>();
+    services.AddHostedService<ArchiveSheetIngestionWorker>();
+    services.AddHostedService<FinalizeBundleWorker>();
     return services;
   }
 }

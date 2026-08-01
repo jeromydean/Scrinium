@@ -23,6 +23,10 @@ Design reference for the Scrinium document management system. Implementation is 
 15. [❓ Open design decisions](#open-design-decisions)
 16. [🏭 Production](#production)
 
+**In progress:** [Archive → Sheet → Bundle model](ARCHIVE_SHEET_BUNDLE_MODEL.md) — target ingest/domain shape (Option B: default bundle on ingest).
+
+**Licenses:** [Third-party components](THIRD_PARTY.md) — NuGet + Docker/runtime inventory (not legal advice).
+
 ---
 
 ## 🧭 Overview
@@ -409,6 +413,7 @@ solr:
 
 ## ❓ Open design decisions
 
+- **Archive / sheet / bundle model** — see [ARCHIVE_SHEET_BUNDLE_MODEL.md](ARCHIVE_SHEET_BUNDLE_MODEL.md) (Option B: default bundle from archive sheets; not yet implemented)
 - Application database name (`scrinium` vs legacy prototype names)
 - Multi-tenancy (`tenant_id` vs schema-per-tenant vs DB-per-tenant)
 - Versioning (immutable blob per version vs history table)

@@ -20,7 +20,7 @@ public sealed class TagService : ITagService
   }
 
   public async Task ApplyTagsAsync(
-    Guid documentId,
+    Guid bundleId,
     IEnumerable<string> tagNames,
     TagSource source,
     Guid appliedBy,
@@ -61,9 +61,9 @@ public sealed class TagService : ITagService
         tagsByName[name] = tag;
       }
 
-      bool alreadyApplied = await _dbContext.DocumentTags
+      bool alreadyApplied = await _dbContext.BundleTags
         .AnyAsync(
-          x => x.DocumentId == documentId && x.TagId == tag.Id,
+          x => x.BundleId == bundleId && x.TagId == tag.Id,
           cancellationToken);
 
       if (alreadyApplied)
@@ -71,9 +71,9 @@ public sealed class TagService : ITagService
         continue;
       }
 
-      _dbContext.DocumentTags.Add(new DocumentTag
+      _dbContext.BundleTags.Add(new BundleTag
       {
-        DocumentId = documentId,
+        BundleId = bundleId,
         TagId = tag.Id,
         Source = source,
         AppliedAt = now,

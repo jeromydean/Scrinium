@@ -3,8 +3,9 @@ using System;
 namespace Scrinium.Core.Telemetry;
 
 public sealed record IngestStepContext(
-  Guid DocumentId,
-  int? PageNumber,
+  Guid? ArchiveId,
+  Guid? ArchiveSheetId,
+  Guid? BundleId,
   string StepName,
   string WorkerType,
   string WorkerId,

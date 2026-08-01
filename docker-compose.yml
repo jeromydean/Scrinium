@@ -7,6 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
     volumes:
+      # Named volume required on Windows/Podman: Postgres initdb cannot chmod NTFS bind mounts.
       - postgres-data:/var/lib/postgresql
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     ports:
@@ -95,7 +96,7 @@ services:
     ports:
       - "8983:8983"
     volumes:
-      - solr-data:/var/solr
+      - ${SCRINIUM_DATA_DIR:-C:/ProgramData/Scrinium}/solr:/var/solr
       - ./docker/certs/solr.pfx:/opt/solr/certs/solr.pfx:ro
     command:
       - solr-precreate
@@ -137,7 +138,8 @@ services:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - minio-data:/data
+      # Host-visible blob store (override root via SCRINIUM_DATA_DIR in .env)
+      - ${SCRINIUM_DATA_DIR:-C:/ProgramData/Scrinium}/minio:/data
     networks:
       - scrinium
     restart: unless-stopped
@@ -189,9 +191,5 @@ volumes:
     name: scrinium-postgres-data
   pgadmin-data:
     name: scrinium-pgadmin-data
-  solr-data:
-    name: scrinium-solr-data
   redis-data:
     name: scrinium-redis-data
-  minio-data:
-    name: scrinium-minio-data

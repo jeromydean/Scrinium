@@ -27,7 +27,9 @@ internal sealed class IngestStepLogConfiguration : IEntityTypeConfiguration<Inge
         v => JsonSerializer.Deserialize<Dictionary<string, object?>>(v, (JsonSerializerOptions?)null)
           ?? new Dictionary<string, object?>());
 
-    builder.HasIndex(x => new { x.DocumentId, x.StartedAt });
+    builder.HasIndex(x => new { x.ArchiveId, x.StartedAt });
+    builder.HasIndex(x => new { x.ArchiveSheetId, x.StartedAt });
+    builder.HasIndex(x => new { x.BundleId, x.StartedAt });
     builder.HasIndex(x => x.TraceId);
   }
 }

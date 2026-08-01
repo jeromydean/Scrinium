@@ -38,6 +38,4 @@ public sealed class RenderingOptions
   public int PdfRenderDpi { get; set; } = 150;
 
   public int WebpQuality { get; set; } = 80;
-
-  public int MaxBarcodeScanPages { get; set; } = 10;
 }

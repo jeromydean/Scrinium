@@ -11,4 +11,9 @@ public sealed class WorkerOptions
   public int PollIntervalMs { get; set; } = 1000;
 
   public int MaxPageRetries { get; set; } = 3;
+
+  /// <summary>
+  /// Maximum delivery attempts before a job is marked failed and acknowledged.
+  /// </summary>
+  public int MaxJobAttempts { get; set; } = 5;
 }

@@ -28,7 +28,18 @@ On Windows/macOS, if Podman cannot connect: `podman machine start`.
 
 Default credentials: [`.env.example`](../.env.example) (local dev only).
 
-Named data volumes: `scrinium-postgres-data`, `scrinium-pgadmin-data`, `scrinium-solr-data`.
+Named Docker volumes: `scrinium-postgres-data`, `scrinium-pgadmin-data`, `scrinium-redis-data`.
+
+**Host bind mounts** under `SCRINIUM_DATA_DIR` (default `C:\ProgramData\Scrinium`):
+
+| Subfolder | Service |
+|-----------|---------|
+| `solr\` | Solr cores / indexes |
+| `minio\` | Object storage blobs |
+
+**PostgreSQL stays on a named volume** on Windows/Podman. `initdb` must `chmod` its data directory; that fails on NTFS bind mounts (`Operation not permitted`). Use `compose down -v` (or delete `scrinium-postgres-data`) to wipe the DB. Solr/MinIO host folders are **not** removed by `-v` — delete those directories manually.
+
+Optional: if you run Compose on Linux (or mount a Linux filesystem path that supports Unix permissions), you can switch Postgres to `${SCRINIUM_DATA_DIR}/postgres:/var/lib/postgresql` the same way as Solr/MinIO.
 
 ### TLS certificates and Firefox
 
@@ -99,6 +110,7 @@ The **Scrinium Postgres** server is preconfigured (connects to `postgres:5432` i
 | **Host (from host machine)** | `localhost:5432` |
 | **Host (from containers)** | `postgres:5432` |
 | **User / password** | `appuser` / `secret` (from `.env`) |
+| **Data** | Named volume `scrinium-postgres-data` (not a Windows host folder — NTFS bind mounts break `initdb`) |
 
 Connection strings (host machine):
 
@@ -118,6 +130,7 @@ Host=localhost;Port=5432;Database=keycloak;Username=appuser;Password=secret
 | **Core** | `documents` (precreated on first start) |
 | **Ping** | https://localhost:8983/solr/documents/admin/ping |
 | **Host (from containers)** | `https://solr:8983/solr/documents` |
+| **Host data directory** | `%SCRINIUM_DATA_DIR%\solr` (default `C:\ProgramData\Scrinium\solr`) |
 
 HTTPS uses the self-signed cert from `generate-certificates.ps1` (`docker/certs/solr.pfx`, same localhost cert as Keycloak).
 
@@ -135,6 +148,9 @@ HTTPS uses the self-signed cert from `generate-certificates.ps1` (`docker/certs/
 | **S3 API** | http://localhost:9000 |
 | **Console** | http://localhost:9001 |
 | **Default credentials** | `minioadmin` / `minioadmin` (from `.env`: `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`) |
+| **Host data directory** | `%SCRINIUM_DATA_DIR%\minio` (default `C:\ProgramData\Scrinium\minio`) |
+
+Object keys (e.g. `archives/{id}/original/...`) appear under that folder after ingest. Recreate containers after changing `SCRINIUM_DATA_DIR` (`.\docker\up.ps1`). Named-volume data is not migrated automatically.
 
 ### Apache Tika
 
@@ -162,6 +178,27 @@ HTTPS uses the self-signed cert from `generate-certificates.ps1` (`docker/certs/
 | **Health check** | http://localhost:5243/health |
 | **OpenAPI (Development)** | http://localhost:5243/openapi/v1.json |
 | **SignalR ingestion hub** | ws://localhost:5243/hubs/ingestion |
+| **Folder watcher client** | `dotnet run --project src/Scrinium.IngestionClient` (see below) |
+
+### Folder watcher test client
+
+Drop files into a watch folder; the client uploads via the ingestion API with Keycloak auth.
+
+**Visual Studio (17.11+):** Select the **Api + Ingestion Client** launch profile from the toolbar dropdown (from [`Scrinium.slnLaunch`](../src/Scrinium.slnLaunch)), then F5. Both projects start together.
+
+**Cursor / VS Code:** Run the **Api + Ingestion Client** compound launch configuration.
+
+```powershell
+# Or manually in two terminals:
+# Terminal 1: API
+dotnet run --project src\Scrinium.Api\Scrinium.Api.csproj
+
+# Terminal 2: folder watcher (reads .env for client secret)
+dotnet run --project src\Scrinium.IngestionClient\Scrinium.IngestionClient.csproj
+```
+
+Default watch folder: `%USERPROFILE%\Documents\Scrinium\inbox`  
+Processed files move to `processed\`; failures to `failed\`.
 
 ---
 

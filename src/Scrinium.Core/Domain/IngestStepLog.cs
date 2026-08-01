@@ -7,9 +7,11 @@ public class IngestStepLog
 {
   public Guid Id { get; set; }
 
-  public Guid DocumentId { get; set; }
+  public Guid? ArchiveId { get; set; }
 
-  public int? PageNumber { get; set; }
+  public Guid? ArchiveSheetId { get; set; }
+
+  public Guid? BundleId { get; set; }
 
   public string StepName { get; set; } = string.Empty;
 

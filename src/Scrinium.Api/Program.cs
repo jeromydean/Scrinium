@@ -50,7 +50,7 @@ public class Program
 
     builder.Services.AddSingleton<IIngestionStagingStore, IngestionStagingStore>();
     builder.Services.AddSingleton<IClientMetadataReader, ClientMetadataReader>();
-    builder.Services.AddSingleton<IDocumentReadyNotifier, SignalRDocumentReadyNotifier>();
+    builder.Services.AddSingleton<IBundleReadyNotifier, SignalRBundleReadyNotifier>();
 
     WebApplication app = builder.Build();
 

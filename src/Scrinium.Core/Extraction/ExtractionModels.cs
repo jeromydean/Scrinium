@@ -10,8 +10,6 @@ public sealed class ExtractionResult
 
   public int PageCount { get; set; } = 1;
 
-  public IReadOnlyList<string> Barcodes { get; set; } = [];
-
   public Dictionary<string, object?> Warnings { get; set; } = new();
 }
 

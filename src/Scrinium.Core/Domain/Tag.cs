@@ -17,5 +17,5 @@ public class Tag
 
   public DateTimeOffset CreatedAt { get; set; }
 
-  public ICollection<DocumentTag> DocumentTags { get; set; } = new List<DocumentTag>();
+  public ICollection<BundleTag> BundleTags { get; set; } = new List<BundleTag>();
 }

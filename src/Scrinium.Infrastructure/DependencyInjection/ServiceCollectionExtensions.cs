@@ -79,7 +79,8 @@ public static class ServiceCollectionExtensions
       };
     });
 
-    services.AddScoped<IDocumentRepository, DocumentRepository>();
+    services.AddScoped<IArchiveRepository, ArchiveRepository>();
+    services.AddScoped<IBundleRepository, BundleRepository>();
     services.AddScoped<ITagService, TagService>();
     services.AddScoped<IIngestTelemetry, PostgresIngestTelemetry>();
     services.AddScoped<ISearchIndexer, SolrDocumentIndexer>();
@@ -88,6 +89,7 @@ public static class ServiceCollectionExtensions
     services.AddSingleton<IFormatRouter, FormatRouter>();
     services.AddScoped<IDocumentNormalizer, GotenbergNormalizer>();
     services.AddScoped<IDocumentExtractor, DocumentExtractor>();
+    services.AddScoped<IBarcodeScanner, ZxingBarcodeScanner>();
     services.AddScoped<IPageRenderer, PageRenderer>();
 
     return services;

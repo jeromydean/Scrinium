@@ -304,6 +304,8 @@ $desktopClientDesired = @{
   serviceAccountsEnabled   = $false
   fullScopeAllowed         = $true
   redirectUris             = @(
+    "http://localhost",
+    "http://127.0.0.1",
     "http://127.0.0.1:*",
     "http://localhost:*",
     "scrinium://auth/callback"

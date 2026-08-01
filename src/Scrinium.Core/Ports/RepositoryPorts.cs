@@ -9,27 +9,44 @@ using Scrinium.Core.Jobs;
 
 namespace Scrinium.Core.Ports;
 
-public interface IDocumentRepository
+public interface IArchiveRepository
 {
-  Task<Document?> GetByIdAsync(Guid documentId, CancellationToken cancellationToken);
+  Task<Archive?> GetByIdAsync(Guid archiveId, CancellationToken cancellationToken);
 
-  Task<Document?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken);
+  Task<Archive?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken);
 
-  Task AddAsync(Document document, CancellationToken cancellationToken);
+  Task AddAsync(Archive archive, CancellationToken cancellationToken);
 
-  Task UpdateAsync(Document document, CancellationToken cancellationToken);
+  Task UpdateAsync(Archive archive, CancellationToken cancellationToken);
+
+  Task SaveChangesAsync(CancellationToken cancellationToken);
+}
+
+public interface IBundleRepository
+{
+  Task<Bundle?> GetByIdAsync(Guid bundleId, CancellationToken cancellationToken);
+
+  Task<Bundle?> GetDefaultByArchiveIdAsync(Guid archiveId, CancellationToken cancellationToken);
+
+  Task<BundleListResult> ListReadyAsync(
+    BundleListQuery query,
+    CancellationToken cancellationToken);
+
+  Task AddAsync(Bundle bundle, CancellationToken cancellationToken);
+
+  Task UpdateAsync(Bundle bundle, CancellationToken cancellationToken);
 
   Task SaveChangesAsync(CancellationToken cancellationToken);
 
-  Task<int> CountPendingPagesAsync(Guid documentId, CancellationToken cancellationToken);
+  Task<int> CountPendingMemberSheetsAsync(Guid bundleId, CancellationToken cancellationToken);
 
-  Task<bool> TryMarkFinalizeEnqueuedAsync(Guid documentId, CancellationToken cancellationToken);
+  Task<bool> TryMarkFinalizeEnqueuedAsync(Guid bundleId, CancellationToken cancellationToken);
 }
 
 public interface ITagService
 {
   Task ApplyTagsAsync(
-    Guid documentId,
+    Guid bundleId,
     IEnumerable<string> tagNames,
     TagSource source,
     Guid appliedBy,

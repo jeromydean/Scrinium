@@ -1,0 +1,21 @@
+[
+  {
+    "Name": "Full Stack",
+    "Projects": [
+      {
+        "Path": "Scrinium.Api\\Scrinium.Api.csproj",
+        "Action": "Start",
+        "DebugTarget": "Scrinium.Api"
+      },
+      {
+        "Path": "Scrinium.IngestionClient\\Scrinium.IngestionClient.csproj",
+        "Action": "Start",
+        "DebugTarget": "Scrinium.IngestionClient"
+      },
+      {
+        "Path": "Scrinium\\Scrinium.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

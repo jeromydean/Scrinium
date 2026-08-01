@@ -3,18 +3,150 @@
         xmlns:vm="using:Scrinium.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d"
+        d:DesignWidth="1200"
+        d:DesignHeight="800"
         x:Class="Scrinium.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Scrinium">
+        Title="Scrinium"
+        Width="1200"
+        Height="800"
+        MinWidth="900"
+        MinHeight="600">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+  <Design.DataContext>
+    <vm:MainWindowViewModel />
+  </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+  <Grid ColumnDefinitions="340,*" RowDefinitions="Auto,*">
+    <Border Grid.ColumnSpan="2"
+            Background="#111827"
+            Padding="16,12">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <TextBlock Text="Scrinium"
+                     FontSize="22"
+                     FontWeight="Bold"
+                     Foreground="White"
+                     VerticalAlignment="Center" />
+          <Button Content="Sign In"
+                  Command="{Binding SignInCommand}"
+                  IsEnabled="{Binding CanSignIn}"
+                  VerticalAlignment="Center" />
+          <Button Content="Refresh"
+                  Command="{Binding RefreshCommand}"
+                  VerticalAlignment="Center" />
+        </StackPanel>
 
+        <TextBlock Grid.Column="1"
+                   Text="{Binding StatusMessage}"
+                   Foreground="#CBD5E1"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center" />
+
+        <TextBlock Grid.Column="2"
+                   Text="Document Library"
+                   Foreground="#94A3B8"
+                   VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1"
+            BorderBrush="#334155"
+            BorderThickness="0,0,1,0"
+            Background="#0F172A">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top"
+                   Margin="16,16,16,8"
+                   Text="Documents"
+                   FontSize="16"
+                   FontWeight="SemiBold"
+                   Foreground="White" />
+
+        <ListBox ItemsSource="{Binding Documents}"
+                 SelectedItem="{Binding SelectedDocument}"
+                 Margin="8,0,8,8">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:DocumentItemViewModel">
+              <Border Padding="12,10"
+                      Margin="0,0,0,6"
+                      Background="#1E293B"
+                      CornerRadius="8">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="{Binding FileName}"
+                             FontWeight="SemiBold"
+                             Foreground="White"
+                             TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding StatusLabel}"
+                             Foreground="#94A3B8"
+                             FontSize="12" />
+                  <TextBlock Text="{Binding UploadedAtLabel}"
+                             Foreground="#64748B"
+                             FontSize="11" />
+                  <TextBlock Text="{Binding TagsLabel}"
+                             Foreground="#64748B"
+                             FontSize="11" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <Grid Grid.Row="1"
+          Grid.Column="1"
+          RowDefinitions="Auto,*,Auto"
+          Background="#020617"
+          Margin="20">
+      <StackPanel Spacing="6">
+        <TextBlock Text="{Binding SelectedFileName}"
+                   FontSize="24"
+                   FontWeight="SemiBold"
+                   Foreground="White"
+                   TextWrapping="Wrap" />
+        <TextBlock Text="{Binding SelectedStatusDetail}"
+                   Foreground="#CBD5E1"
+                   TextWrapping="Wrap" />
+        <TextBlock Text="{Binding SelectedTags}"
+                   Foreground="#64748B"
+                   FontSize="12" />
+      </StackPanel>
+
+      <Border Grid.Row="1"
+              Margin="0,16"
+              Background="#0F172A"
+              CornerRadius="12"
+              ClipToBounds="True">
+        <Grid>
+          <Image Source="{Binding CurrentPageImage}"
+                 Stretch="Uniform"
+                 Margin="12" />
+          <TextBlock Text="Preview appears when a document is ready."
+                     Foreground="#64748B"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     IsVisible="{Binding !CanNavigatePages}" />
+        </Grid>
+      </Border>
+
+      <StackPanel Grid.Row="2"
+                  Orientation="Horizontal"
+                  HorizontalAlignment="Center"
+                  Spacing="12">
+        <Button Content="Previous"
+                Command="{Binding PreviousPageCommand}"
+                IsEnabled="{Binding CanGoPrevious}" />
+        <TextBlock Text="{Binding PageLabel}"
+                   Foreground="#CBD5E1"
+                   VerticalAlignment="Center"
+                   MinWidth="120"
+                   TextAlignment="Center" />
+        <Button Content="Next"
+                Command="{Binding NextPageCommand}"
+                IsEnabled="{Binding CanGoNext}" />
+      </StackPanel>
+    </Grid>
+  </Grid>
 </Window>

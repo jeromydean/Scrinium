@@ -16,23 +16,3 @@ internal sealed class TagConfiguration : IEntityTypeConfiguration<Tag>
     builder.HasIndex(x => x.Name).IsUnique();
   }
 }
-
-internal sealed class DocumentTagConfiguration : IEntityTypeConfiguration<DocumentTag>
-{
-  public void Configure(EntityTypeBuilder<DocumentTag> builder)
-  {
-    builder.ToTable("document_tags");
-    builder.HasKey(x => new { x.DocumentId, x.TagId });
-    builder.Property(x => x.Source).HasConversion<string>().HasMaxLength(16);
-
-    builder.HasOne(x => x.Document)
-      .WithMany(x => x.DocumentTags)
-      .HasForeignKey(x => x.DocumentId)
-      .OnDelete(DeleteBehavior.Cascade);
-
-    builder.HasOne(x => x.Tag)
-      .WithMany(x => x.DocumentTags)
-      .HasForeignKey(x => x.TagId)
-      .OnDelete(DeleteBehavior.Cascade);
-  }
-}
